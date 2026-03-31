@@ -1,9 +1,6 @@
 # Pick-A-Title
 A lightweight, interactive browser for Choice of Games and Hosted Games titles. An easy way too toggle between catalogs and filter by genre tags to find your next story !!
 
-Hey!! This is a simple interactive library browser I made because the catalog is getting SOO big lol.
-Features:
-
     Toggle between CoG and Hosted Games catalogs.
 
     Filter by genre tags.
