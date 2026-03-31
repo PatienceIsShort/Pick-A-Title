@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choice of Games + Hosted Games Genre Browser</title>
+    <style>
+        :root {
+            --bg: #0b0f1a;
+            --card-bg: #161b2a;
+            --header-bg: #0b0f1a;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: #2d3748;
+            --accent: #38bdf8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            background: var(--header-bg);
+            padding: 16px 20px;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .controls {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .top-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .type-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 7px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        /* ── Search ── */
+        #search {
+            flex: 1;
+            min-width: 180px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #search::placeholder { color: var(--text-dim); }
+        #search:focus { border-color: var(--accent); }
+
+        /* ── Genre filter pills ── */
+        .genre-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-height: 115px;
+            overflow-y: auto;
+            padding: 4px 2px;
+        }
+
+        .tag {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            opacity: 0.6;
+            transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+            user-select: none;
+        }
+        .tag:hover  { opacity: 0.85; }
+        .tag:focus  { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .tag.active {
+            opacity: 1;
+            transform: scale(1.05);
+            border-color: rgba(255,255,255,0.8);
+            box-shadow: 0 0 8px rgba(255,255,255,0.2);
+        }
+
+        /* ── Stats row ── */
+        .stats {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #clear-filters {
+            background: none;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            font-size: 0.72rem;
+            padding: 3px 9px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        #clear-filters:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        /* ── Cards ── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            padding: 28px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s, border-color 0.25s;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .card-type {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .card p {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            flex-grow: 1;
+            margin: 0 0 16px;
+        }
+
+        .card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .pill {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="controls">
+        <div class="top-row">
+            <div class="type-toggle">
+                <button class="toggle-btn active" data-type="all">All Titles</button>
+                <button class="toggle-btn" data-type="choice">Choice of Games</button>
+                <button class="toggle-btn" data-type="hosted">Hosted Games</button>
+            </div>
+            <input id="search" type="search" placeholder="Search titles and descriptions…" autocomplete="off">
+        </div>
+        <div class="genre-filters" id="genre-box"></div>
+        <div class="stats">
+            <span id="counter">Loading…</span>
+            <button id="clear-filters">Reset All Filters</button>
+        </div>
+    </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const colorMap = {
+    "Urban Fantasy": "#BF00FF",
+    "Near-Future Sci-Fi": "#546E7A",
+    "Cyberpunk": "#00FFFF",
+    "Hard Sci-fi": "#4682B4",
+    "Sci-Fi": "#1565C0",           
+    "Space opera": "#0A2E5C",
+    "Steampunk": "#CD7F32",
+    "Post apocalyptic": "#8B4513",
+    "Dystopian": "#2F4F4F",
+    "Time Travel": "#40E0D0",
+    "Robots": "#E5E4E2",
+    "Superhero": "#1E90FF",
+
+    "Action": "#FF0000",
+    "Anthology": "#DDA0DD",
+    "Spy": "#004953",
+    "Alien": "#39FF14",
+    "Archaeological": "#D2B48C",
+    "Comedy": "#FF69B4",           
+    "Ensemble stories": "#FF8C00",
+    "Genre-defying": "#4B0082",
+    "Grim dark": "#36454F",        
+    "Noir": "#1A1A1A",
+    "Gunpowder Fantasy": "#B87333",
+    "Kingdom": "#FFD700",
+    "Military": "#4B5320",
+    "Mythology": "#FFFFFF",
+    "Ocean": "#00CED1",
+    "School": "#000080",
+    "Trade": "#C0C0C0",
+
+    "Crime": "#FFFF00",
+    "Children": "#FFFDD0",
+    "Coming of age": "#FFBF00",
+
+    "High/Epic Fantasy": "#DAA520",
+    "Low Fantasy": "#556B2F",
+    "Magical Realism": "#DB7093",
+    "Folklore": "#228B22",
+    "Fairy tale": "#FFB6C1",
+    "Fantasy": "#8B6914",          
+    "Gods": "#F5F5F5",
+    "Greek": "#00BFFF",
+    "Egyptian": "#C5B358",
+    "Norse": "#AFEEEE",
+    "Celtic": "#32CD32",
+    "Magic School": "#000080",
+    "Supernatural Education": "#483D8B",
+    "Magic": "#8A2BE2",
+
+    "Horror": "#111111",
+    "Gore": "#800000",
+    "Goth": "#301934",
+    "Vampire": "#E6194B",
+    "Vampire: The Masquerade": "#4D0000",
+    "Werewolf": "#696969",
+    "Zombies": "#556B2F",
+    "Undead": "#BDB76B",
+    "Cult": "#FF4500",
+    "Supernatural": "#9370DB",
+    "Paranormal": "#ADFF2F",
+
+    "Romance": "#FFC0CB",
+    "Romance with Depth": "#C71585",
+    "Erotica": "#800080",
+    "Drama": "#B22222",
+    "Tragedy": "#191970",
+    "Slice of life": "#FFE4B5",
+    "Personal transformation": "#E9967A",
+    "Cottagecore": "#8FBC8F",
+    "Cozy": "#F5DEB3",
+
+    "Mystery": "#708090",
+    "Thriller": "#FF2400",
+    "Psychological": "#2B2B2B",
+    "Heist": "#1E90FF",
+    "Legal": "#BC8F8F",
+    "Political": "#002366",
+    "Adventure": "#006400",
+    "Travel / Road-Trip": "#FFA500",
+    "Western": "#A0522D",
+    "Survival": "#808000",
+    "War": "#3B3B3B",
+    "Ships / Ocean": "#008B8B",
+    "Pirates": "#5C4033",
+    "Desert": "#EDC9AF",
+    "Wilderness": "#013220",
+
+    "Historical": "#BC8F8F",
+    "Alternative History": "#CC7722",
+    "Medieval": "#71797E",
+    "Shakespeare": "#800020",
+    "French Revolution": "#0055A4",
+    "Middle Eastern": "#FFDAB9",
+    "Mexican": "#E25822",
+    "African": "#CC7722",
+    "Japanese": "#D71920",
+    "China": "#00A86B",
+    "Jewish": "#0038B8",
+    "Irish": "#009A44",
+    "Art": "#FF00FF",
+    "Music": "#333333",
+    "Fashion": "#F06292",
+    "Soft Surrealism": "#E6E6FA",
+    "Absurdist": "#F0F8FF",
+    "Philosophical": "#BEBEBE",
+    "Satire": "#C0FF00",
+    "Religious": "#FCF5E5",
+    "Dreams": "#FFFDD0",
+    "Anime": "#FF1493",
+
+    "Modern": "#87CEEB",
+    "Workplace": "#F5F5DC",
+    "Medical": "#E0FFFF",
+    "Science": "#20B2AA",
+    "Environmentalist": "#2E8B57",
+    "Social Issues": "#B0C4DE",
+    "Culinary": "#98FB98",
+    "Sports": "#00FF00",
+    "Animal": "#D2691E",
+    "Teen": "#DA70D6",
+    "Play": "#E9967A",
+    "Movies": "#A9A9A9",
+    "Biography/Memoirs": "#5F9EA0",
+    "Long-Running Sagas": "#4E3629"
+};
+
+/* ── Memoized contrast helper ── */
+const _contrastCache = new Map();
+function getContrastColor(hex) {
+    if (_contrastCache.has(hex)) return _contrastCache.get(hex);
+    if (!hex || hex === 'transparent') return 'white';
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const result = (r * 299 + g * 587 + b * 114) / 1000 > 125 ? 'black' : 'white';
+    _contrastCache.set(hex, result);
+    return result;
+}
+
+/* ── Data ── */
+const choiceData = [
+    { t: "Heroes of Tomorrow: Hidden Potential", d: "At our superhero academy, you'll lead a team of teen heroes to battle supervillains!", c: ["Superhero", "Teen", "Adventure"] },
+    { t: "Undying Fortress", d: "Can you and your magic sword save the kingdom from death herself?", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "Cheerleader's Choice: New York Spirit", d: "Be! Heroic! B-E heroic! Grab your pompoms and save New York from dystopian villains!", c: ["Dystopian", "Superhero", "Modern"] },
+    { t: "House of the Golden Mask", d: "Awaken your magic and break an ancient curse at this secret school of sorcery!", c: ["Magic School", "Supernatural", "Mystery"] },
+    { t: "An Imp and an Impostor", d: "Infiltrating the Arkan magic police to steal back your magic.", c: ["Spy", "Magic", "Urban Fantasy"] },
+    { t: "Hunter: The Reckoning — A Time of Monsters", d: "Topple the vampires from the streets below!", c: ["Horror", "Vampire", "Urban Fantasy"] },
+    { t: "Specters of the Deep", d: "Climb out of your tomb to avenge your own death in this haunted fantasy epic!", c: ["Supernatural", "High/Epic Fantasy", "Tragedy"] },
+    { t: "Star Crystal Warriors Go", d: "Defeat nightmare monsters with dream magic and still make it to school.", c: ["Anime", "Magic", "Teen"] },
+    { t: "Games of the Monarch's Eye", d: "Duel your greatest rival to win back your honor in a Silk Road tournament.", c: ["High/Epic Fantasy", "Political", "Adventure"] },
+    { t: "Spire, Surge, and Sea", d: "In humanity's last city floating in a seascape, will you tear it all down?", c: ["Ships / Ocean", "Dystopian", "Sci-Fi"] },
+    { t: "The Last Scion", d: "Shrug off bullets and smash buildings as you battle supervillains!", c: ["Superhero", "Action", "Modern"] },
+    { t: "Stronghold: Caverns of Sorcery", d: "Deep beneath the earth, the dragon is rising! Save your home.", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "Hunter: the Reckoning—The Beast of Glenkildove", d: "The Beast has stalked Ireland for centuries. Now, you must hunt it.", c: ["Horror", "Irish", "Paranormal"] },
+    { t: "Honor Bound", d: "Protect an exclusive boarding school as a military bodyguard.", c: ["Modern", "Drama", "Political"] },
+    { t: "Magehunter: Phoenix Flame", d: "Wield ancient technology to overthrow your mage oppressors!", c: ["High/Epic Fantasy", "War", "Adventure"] },
+    { t: "Werewolves 3: Evolution's End", d: "The ultimate battle between werewolves and human supremacists.", c: ["Werewolf", "Urban Fantasy", "War"] },
+    { t: "Heavens' Revolution: A Lion Among the Cypress", d: "Persian steampunk empire revolution with alchemy and mechs.", c: ["Steampunk", "Alternative History", "Political"] },
+    { t: "Bootlegger: Moonshine Empire", d: "Build a criminal organization in 1920s Prohibition New York.", c: ["Historical", "Crime", "Modern"] },
+    { t: "The Ghost and the Golem", d: "Can your magic amulet save your Jewish village? Anarchists and demons.", c: ["Jewish", "Folklore", "Historical"] },
+    { t: "Restore, Reflect, Retry", d: "A haunted game about a haunted game. It remembers you.", c: ["Horror", "Soft Surrealism", "Modern"] },
+    { t: "Unsupervised", d: "Sidekicks turn into heroes when the world's protectors go missing.", c: ["Superhero", "Action", "Personal transformation"] },
+    { t: "Werewolf: the Apocalypse—The Book of Hungry Names", d: "Save the living earth with Rage and spirit!", c: ["Werewolf", "Horror", "Environmentalist"] },
+    { t: "On the Run: Rogue Heroes", d: "Uncover military secrets about Activated people.", c: ["Superhero", "Thriller", "Sci-Fi"] },
+    { t: "Lies Under Ice", d: "Lead the first settlement on Jupiter's frozen moon, Europa.", c: ["Hard Sci-fi", "Space opera", "Mystery"] },
+    { t: "Atlantis Academy", d: "Learn magic alongside sea nymphs, selkies, and sirens.", c: ["Magic School", "High/Epic Fantasy", "Ships / Ocean"] },
+    { t: "Escape From Death", d: "Steal Death's power and determine the fate of the Afterlife.", c: ["Supernatural", "High/Epic Fantasy", "Political"] },
+    { t: "The Bread Must Rise", d: "Magical baking contest with necromancy and rivals.", c: ["Comedy", "Magic", "Culinary"] },
+    { t: "Top Villain: Total Domination", d: "Build a doomsday device but manage your striking henchpeople.", c: ["Superhero", "Comedy", "Personal transformation"] },
+    { t: "Elite Status: Platinum Concierge", d: "How far would you go to make a billionaire's dreams come true?", c: ["Modern", "Workplace", "Drama"] },
+    { t: "Royal Affairs", d: "Rule the roost at your exclusive boarding school.", c: ["Modern", "Political", "Romance"] },
+    { t: "Stars Arisen", d: "Wield forbidden star power to reclaim your mother's throne.", c: ["High/Epic Fantasy", "Magic", "Political"] },
+    { t: "New Witch in Town", d: "Make friends and cast spells in a magical small town.", c: ["Magic", "Modern", "Slice of life"] },
+    { t: "Choice of the Viking", d: "Forge your legacy in Iceland among gods and giants.", c: ["Norse", "Folklore", "Historical"] },
+    { t: "Professor of Magical Studies", d: "Research magic that probably won't destroy the world.", c: ["Magic School", "Workplace", "Comedy"] },
+    { t: "Teahouse of the Gods", d: "Harness qi energy to control body and mind.", c: ["Gods", "Philosophical", "Urban Fantasy"] },
+    { t: "Skystrike: Wings of Justice", d: "Save your city with the wings of a falcon.", c: ["Superhero", "Animal", "Adventure"] },
+    { t: "A Crown of Sorcery and Steel", d: "Overthrow the queen and her clockwork iron army.", c: ["Steampunk", "High/Epic Fantasy", "War"] },
+    { t: "Noblesse Oblige", d: "Spark romance amid secrets in a crumbling mansion.", c: ["Historical", "Romance", "Mystery"] },
+    { t: "Paranormal Preparatory School", d: "Peace between vampires and werewolves at a school on top of hell.", c: ["Supernatural Education", "Vampire", "Werewolf"] },
+    { t: "The Dragon and the Djinn", d: "Hold a djinn in a bottle and slay the dragon.", c: ["Middle Eastern", "High/Epic Fantasy", "Adventure"] },
+    { t: "Social Services of the Doomed", d: "They have magic and fangs. You have red tape!", c: ["Urban Fantasy", "Comedy", "Workplace"] },
+    { t: "Nikola Tesla: War of the Currents", d: "Rewrite history with death rays and sapient machines.", c: ["Science", "Alternative History", "Steampunk"] },
+    { t: "Siege of Treboulain", d: "Defend your magical city using swords, spells, and strategy.", c: ["High/Epic Fantasy", "War", "Political"] },
+    { t: "Vampire: The Masquerade — Sins of the Sires", d: "Athens vampire politics where everyone owes you a favor.", c: ["Vampire: The Masquerade", "Horror", "Political"] },
+    { t: "Revolution Diabolique", d: "Summon demons to win the French Revolution!", c: ["French Revolution", "Supernatural", "Historical"] },
+    { t: "Pon Para and the Unconquerable Scorpion", d: "Stop the Scorpion and bring peace to the nations.", c: ["High/Epic Fantasy", "Gods", "Adventure"] },
+    { t: "Witchcraft U", d: "Rush the university's secret societies as a magic major.", c: ["Magic School", "Modern", "Supernatural"] },
+    { t: "Faerie's Bargain: The Price of Business", d: "Amass a goblin hoard of memories and dreams.", c: ["Fairy tale", "Fantasy", "Trade"] },
+    { t: "Cliffhanger: Challenger of Tomorrow", d: "Pulp adventure set in a retro-futuristic 1930s.", c: ["Historical", "Adventure", "Sci-Fi"] },
+    { t: "Vampire: The Masquerade — Parliament of Knives", d: "Dominate undead politics in a missing Prince's wake.", c: ["Vampire: The Masquerade", "Political", "Mystery"] },
+    { t: "Wraiths of SENTINEL", d: "Dying made you the perfect spy with phantom powers.", c: ["Supernatural", "Spy", "Modern"] },
+    { t: "The Play's the Thing", d: "Win fame as a playwright before a deadly curse hits.", c: ["Play", "Historical", "Supernatural"] },
+    { t: "Battlemage: Magic by Mail", d: "Defend your kingdom with forbidden magic or backstab the crown.", c: ["High/Epic Fantasy", "Magic", "Coming of age"] },
+    { t: "Vampire: The Masquerade — Out for Blood", d: "Gather allies to hunt the vampires terrorizing your town.", c: ["Vampire: The Masquerade", "Horror", "Survival"] },
+    { t: "Pugmire: Treasure of the Sea Dogs", d: "Fetch Corgi pearls in a swashbuckling furry adventure.", c: ["Animal", "Adventure", "Pirates"] },
+    { t: "VERSUS: The Deathscapes", d: "Unlock the secrets of the galaxy and steal god powers.", c: ["Space opera", "Superhero", "Sci-Fi"] },
+    { t: "Fate of the Storm Gods", d: "Harness wind, earth, and fire to destroy your enemies.", c: ["Gods", "High/Epic Fantasy", "Adventure"] },
+    { t: "The Luminous Underground", d: "Blast spirits out of a haunted subway system.", c: ["Urban Fantasy", "Supernatural", "Workplace"] },
+    { t: "Jolly Good: Cakes and Ale", d: "Win glory and money through cunning schemes in London.", c: ["Historical", "Comedy", "Satire"] },
+    { t: "Fox Spirit: A Two-Tailed Adventure", d: "Dazzle or destroy humanity as a magical fox.", c: ["Japanese", "Folklore", "Supernatural"] },
+    { t: "Vampire: The Masquerade — Night Road", d: "An elite vampire courier delivering secrets.", c: ["Vampire: The Masquerade", "Thriller", "Action"] },
+    { t: "Kidnapped! A Royal Birthday", d: "Escape captors and reclaim your rightful throne.", c: ["Adventure", "High/Epic Fantasy", "Comedy"] },
+    { t: "Werewolves 2: Pack Mentality", d: "War between your pack and the Human Sovereignty Movement.", c: ["Werewolf", "Urban Fantasy", "Political"] },
+    { t: "180 Files: The Aegis Project", d: "Uncover a web of evil as an elite superspy.", c: ["Spy", "Modern", "Action"] },
+    { t: "Light Years Apart", d: "Outfox a galaxy-spanning AI with space pirates.", c: ["Space opera", "Sci-Fi", "Pirates"] },
+    { t: "A Squire's Tale", d: "Battle evil faeries to rescue the prince of England.", c: ["High/Epic Fantasy", "Folklore", "Medieval"] },
+    { t: "Mask of the Plague Doctor", d: "Stop a deadly plague with swords and surgery.", c: ["Medieval", "Medical", "Mystery"] },
+    { t: "Blackstone Academy for the Magical Arts", d: "Cast spells, pass exams, and save the world.", c: ["Magic School", "Magic", "Teen"] },
+    { t: "Ironheart", d: "Pilot a giant iron war mech in alternate medieval history.", c: ["Medieval", "Alternative History", "Robots"] },
+    { t: "Zip! Speedster of Valiant City", d: "Use speedster powers to save the day from the Sloth.", c: ["Superhero", "Action", "Modern"] },
+    { t: "Sky Pirates of Actorius", d: "Infiltrate a pirate airship and foil the captain's plans.", c: ["Steampunk", "Pirates", "Adventure"] },
+    { t: "An Odyssey: Echoes of War", d: "Fight the sea god's wrath to reclaim your throne.", c: ["Greek", "Gods", "War"] },
+    { t: "The Magician's Workshop", d: "Uncover the secrets of Renaissance Italy.", c: ["Historical", "Magic", "Mystery"] },
+    { t: "In the Service of Mrs. Claus", d: "Take back Christmas from the forces of darkness.", c: ["Fairy tale", "Spy", "Supernatural"] },
+    { t: "Crème de la Crème", d: "Climb to the top of the class at an exclusive school.", c: ["Modern", "Drama", "Romance"] },
+    { t: "Grand Academy II: Attack of the Sequel", d: "Deliciously meta sequel at an evil preparatory school.", c: ["Comedy", "Superhero", "School"] },
+    { t: "The Fog Knows Your Name", d: "Unravel the fog's mysteries before you become its next victim.", c: ["Horror", "Mystery", "Supernatural"] },
+    { t: "Sword of the Slayer", d: "Fight monsters with an enchanted talking sword.", c: ["High/Epic Fantasy", "Adventure", "Magic"] },
+    { t: "Psy High 2: High Summer", d: "Psychic powers and time magic at summer camp.", c: ["Supernatural", "Teen", "Time Travel"] },
+    { t: "Heroes of Myth", d: "Everyone thinks you saved the world, but it was all a lie.", c: ["High/Epic Fantasy", "Philosophical", "Drama"] },
+    { t: "Exile of the Gods", d: "Epic tale of love and revenge in the war between gods.", c: ["Greek", "Gods", "High/Epic Fantasy"] },
+    { t: "Asteroid Run: No Questions Asked", d: "Deliver secret cargo to the Asteroid Belt.", c: ["Space opera", "Sci-Fi", "Crime"] },
+    { t: "Fool!", d: "Jest your way from obscurity to royal acclaim.", c: ["Medieval", "Historical", "Comedy"] },
+    { t: "Pon Para and the Great Southern Labyrinth", d: "Battle savage monsters to save reality.", c: ["High/Epic Fantasy", "Adventure", "Gods"] },
+    { t: "Fog of War: The Battle for Cerberus", d: "Astral Troopers using combat tactics and diplomacy.", c: ["Space opera", "War", "Sci-Fi"] },
+    { t: "The Superlatives: Shattered Worlds", d: "Conquer assassins and aliens in Superlative London.", c: ["Steampunk", "Superhero", "Alien"] },
+    { t: "Drag Star!", d: "Throw shade and serve looks in a drag competition.", c: ["Modern", "Comedy", "Personal transformation"] },
+    { t: "Chronicon Apocalyptica", d: "Battle Norse raiders and ghosts to save England.", c: ["Medieval", "Historical", "Folklore"] },
+    { t: "Tower Behind the Moon", d: "Already an archmage—can you become an immortal?", c: ["High/Epic Fantasy", "Magic", "Gods"] },
+    { t: "7th Sea: A Pirate's Pact", d: "Battle slavers and sea monsters on the high seas.", c: ["Pirates", "Ships / Ocean", "Adventure"] },
+    { t: "Death Collector", d: "Severing tongues for a living as Death.", c: ["Supernatural", "Horror", "Drama"] },
+    { t: "Weyrwood", d: "Regency fantasy of manners, daring, and magic.", c: ["Historical", "Fantasy", "Drama"] },
+    { t: "Stronghold: A Hero's Fate", d: "Defend your stronghold from invading monsters.", c: ["High/Epic Fantasy", "War", "Medieval"] },
+    { t: "Gilded Rails", d: "Speed dating for a railway-tycoon robber baron.", c: ["Historical", "Modern", "Romance"] },
+    { t: "The Martian Job", d: "Rob the first Martian casino and rule the planet.", c: ["Sci-Fi", "Heist", "Space opera"] },
+    { t: "The Mysteries of Baroque", d: "Mad science raised you from the dead!", c: ["Goth", "Science", "Supernatural"] },
+    { t: "Choice of Broadsides: HMS Foraker", d: "Take command of a sailing frigate.", c: ["Ships / Ocean", "Historical", "War"] },
+    { t: "DinoKnights", d: "Saddle up to defend the queen on dino-back!", c: ["Animal", "High/Epic Fantasy", "Medieval"] },
+    { t: "Choice of Magics", d: "Your magic can change the world, but at what cost?", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "Werewolves: Haven Rising", d: "Werewolves throw off the shackles of police state.", c: ["Werewolf", "Urban Fantasy", "Dystopian"] },
+    { t: "Blood Money", d: "Take over your crime family with blood power.", c: ["Supernatural", "Crime", "Mystery"] },
+    { t: "I, Cyborg", d: "Outlaw cyborg on the run after one last heist.", c: ["Cyberpunk", "Robots", "Sci-Fi"] },
+    { t: "Rent-a-Vice", d: "A world where vice is a virtue; ethical rabbit holes.", c: ["Cyberpunk", "Noir", "Philosophical"] },
+    { t: "The Road to Canterbury", d: "Enter the medieval world of Chaucer's tales.", c: ["Medieval", "Historical", "Folklore"] },
+    { t: "Silverworld", d: "Explore a savage Stone Age world.", c: ["Adventure", "Historical", "Survival"] },
+    { t: "The Hero Project: Open Season", d: "Win America's #1 reality competition for heroes.", c: ["Superhero", "Modern", "Political"] },
+    { t: "The Fielder's Choice", d: "Pitch your way to the top of the major leagues.", c: ["Sports", "Modern", "Drama"] },
+    { t: "Undercover Agent", d: "Undercover to retrieve a deadly new bio-weapon.", c: ["Spy", "Modern", "Action"] },
+    { t: "The Cryptkeepers of Hallowford", d: "Fight monsters and uncover secrets in Hallowford.", c: ["High/Epic Fantasy", "Adventure", "Magic"] },
+    { t: "Tally Ho", d: "Untangle knotty problems with elegance as a servant.", c: ["Historical", "Comedy", "Drama"] },
+    { t: "T-Rex Time Machine", d: "Travel back to the age of the T-rex.", c: ["Time Travel", "Animal", "Adventure"] },
+    { t: "Broadway: 1849", d: "Box office glory while fending off gangs of NY.", c: ["Historical", "Drama", "Crime"] },
+    { t: "Choice of Rebels: Uprising", d: "Lead the revolt against a bloodthirsty empire.", c: ["High/Epic Fantasy", "War", "Political"] },
+    { t: "Heart of the House", d: "Trapped in a haunted manor; will love bloom?", c: ["Horror", "Romance", "Supernatural"] },
+    { t: "The Superlatives: Aetherfall", d: "Superpowered team in 19th-century London.", c: ["Steampunk", "Superhero", "Historical"] },
+    { t: "Choice of the Cat", d: "Knock things over. Enslave humanity. Huge cat simulator.", c: ["Animal", "Comedy", "Slice of life"] },
+    { t: "Grand Academy for Future Villains", d: "World-class education for taking over the world.", c: ["Comedy", "Superhero", "Teen"] },
+    { t: "Trials of the Thief-Taker", d: "Hunting criminals for cash in 1729 London.", c: ["Historical", "Crime", "Mystery"] },
+    { t: "The Hero Unmasked!", d: "Impersonate your twin as the champion of justice.", c: ["Superhero", "Comedy", "Drama"] },
+    { t: "Avatar Of The Wolf", d: "Hunt down the killer who murdered the Wolf god.", c: ["Gods", "Folklore", "Supernatural"] },
+    { t: "Demon Mark: A Russian Saga", d: "Russian saga of dragons and cursed marks.", c: ["Folklore", "High/Epic Fantasy", "Historical"] },
+    { t: "Welcome to Moreytown", d: "Claw your way to the top of a furry slum.", c: ["Animal", "Crime", "Cyberpunk"] },
+    { t: "The Eagle's Heir", d: "Steampunk airship adventure in Napoleon's era.", c: ["Alternative History", "Steampunk", "Political"] },
+    { t: "Runt of the Litter", d: "Steal and raise a baby war gryphon!", c: ["Animal", "High/Epic Fantasy", "War"] },
+    { t: "VERSUS: The Elite Trials", d: "Infiltrate the gods' Elite Courte and steal powers.", c: ["Space opera", "Superhero", "Sci-Fi"] },
+    { t: "Cannonfire Concerto", d: "Supernatural virtuoso performance in the 18th century.", c: ["Historical", "Magic", "Music"] },
+    { t: "Empyrean", d: "Experimental fighter plane vs dieselpunk aeros.", c: ["Sci-Fi", "Steampunk", "Action"] },
+    { t: "Saga of the North Wind", d: "Lead your tribe on a pilgrimage to the North.", c: ["Norse", "Folklore", "Adventure"] },
+    { t: "Congresswolf", d: "Werewolf running for Congress; no silver bullet.", c: ["Werewolf", "Political", "Comedy"] },
+    { t: "Sorcery Is for Saps", d: "Apprentice sorcerer identity theft drama.", c: ["Magic", "Comedy", "High/Epic Fantasy"] },
+    { t: "A Midsummer Night's Choice", d: "Shakespearean comedy with fairy outlaws.", c: ["Shakespeare", "Fairy tale", "Comedy"] },
+    { t: "Choice of Alexandria", d: "Save the ancient Library with science.", c: ["Historical", "Science", "Philosophical"] },
+    { t: "Choice of the Pirate", d: "Plunder ghost ships for cursed treasure.", c: ["Pirates", "Supernatural", "Ships / Ocean"] },
+    { t: "The Sea Eternal", d: "Enchanted undersea society immortality quest.", c: ["Ships / Ocean", "Supernatural", "Philosophical"] },
+    { t: "The Hero Project: Redemption Season", d: "Steal the spotlight on a reality show for heroes.", c: ["Superhero", "Modern", "Political"] },
+    { t: "The Daring Mermaid Expedition", d: "Scientifically inaccurate romp in pirate waters.", c: ["Ships / Ocean", "Historical", "Adventure"] },
+    { t: "Sixth Grade Detective", d: "Middle school crime doesn't stand a chance.", c: ["Children", "Mystery", "Modern"] },
+    { t: "MetaHuman Inc.", d: "CEO selling superpowers and traveling time.", c: ["Superhero", "Sci-Fi", "Time Travel"] },
+    { t: "Pendragon Rising", d: "Seize the throne in the age of King Arthur.", c: ["Medieval", "Historical", "Folklore"] },
+    { t: "Diabolical", d: "Criminal mastermind lair-building bank-robbing fun.", c: ["Superhero", "Comedy", "Crime"] },
+    { t: "Deathless: The City's Thirst", d: "Necromantic legal thriller in a desert city.", c: ["Legal", "Supernatural", "Mystery"] },
+    { t: "Ratings War", d: "Implant cameras in your eyes for news dominance.", c: ["Cyberpunk", "Dystopian", "Modern"] },
+    { t: "A Wise Use of Time", d: "With the power to freeze time, cheat death.", c: ["Sci-Fi", "Time Travel", "Thriller"] },
+    { t: "VERSUS: The Lost Ones", d: "Steal alien powers on planet Versus.", c: ["Space opera", "Sci-Fi", "Superhero"] },
+    { t: "Champion of the Gods", d: "Wield god-given power in this Greek myth epic.", c: ["Greek", "Gods", "High/Epic Fantasy"] },
+    { t: "It's Killing Time", d: "Assassinate people for money across the world.", c: ["Crime", "Thriller", "Modern"] },
+    { t: "Hollywood Visionary", d: "Make the movie of your dreams in 1950s Hollywood.", c: ["Movies", "Historical", "Drama"] },
+    { t: "Choice of the Petal Throne", d: "Glory or a knife in the back in a unique empire.", c: ["High/Epic Fantasy", "Historical", "Adventure"] },
+    { t: "The Hero of Kendrickstone", d: "Rescue a city held hostage by an evil wizard.", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "The Last Monster Master", d: "Telepathically train wild monsters as soldiers.", c: ["Animal", "High/Epic Fantasy", "War"] },
+    { t: "Choice of Robots", d: "Your robots will change the world!", c: ["Robots", "Sci-Fi", "Personal transformation"] },
+    { t: "Psy High", d: "Teen supernatural mystery at high school.", c: ["Supernatural", "Teen", "Mystery"] },
+    { t: "Creatures Such as We", d: "Philosophical romance with designers on the moon.", c: ["Sci-Fi", "Philosophical", "Romance"] },
+    { t: "Thieves' Gambit: The Curse of the Black Cat", d: "World's second-greatest jewel thief heist.", c: ["Heist", "Crime", "Adventure"] },
+    { t: "Yeti's Parole Officer", d: "The Yeti is an alien convict on Earth.", c: ["Sci-Fi", "Comedy", "Supernatural"] },
+    { t: "Heroes Rise: HeroFall", d: "Complete the epic Heroes Rise trilogy.", c: ["Superhero", "Political", "Modern"] },
+    { t: "Mecha Ace", d: "Giant mecha robot duels in interstellar war.", c: ["Robots", "Sci-Fi", "War"] },
+    { t: "Neighbourhood Necromancer", d: "Command the undead to take revenge on suburbs.", c: ["Supernatural", "Horror", "Comedy"] },
+    { t: "NOLA Is Burning", d: "Blood-soaked noir thriller in New Orleans.", c: ["Modern", "Thriller", "Horror"] },
+    { t: "Choice of the Rock Star", d: "Rock your way to the top of the '80s charts.", c: ["Music", "Modern", "Historical"] },
+    { t: "Choice of the Deathless", d: "Battle demons and undead attorneys.", c: ["Legal", "Supernatural", "Fantasy"] },
+    { t: "Reckless Space Pirates", d: "Steal slime from aliens or prevent war.", c: ["Space opera", "Pirates", "Sci-Fi"] },
+    { t: "Showdown at Willow Creek", d: "Defend Willow Creek from outlaws.", c: ["Western", "Mystery", "Historical"] },
+    { t: "The ORPHEUS Ruse", d: "Psychic spy leaping from body to body.", c: ["Spy", "Sci-Fi", "Thriller"] },
+    { t: "Heroes Rise: The Hero Project", d: "Reality show battle for heroes.", c: ["Superhero", "Modern", "Political"] },
+    { t: "Affairs of the Court: Choice of Romance", d: "Court politics and changing history through love.", c: ["Historical", "Romance", "Political"] },
+    { t: "Choice of the Vampire: The Fall of Memphis", d: "Vampire senators and plague in 1873 Memphis.", c: ["Vampire", "Historical", "Political"] },
+    { t: "Choice of the Ninja", d: "Assassinate the shogun then vanish.", c: ["Japanese", "Historical", "Action"] },
+    { t: "Slammed!", d: "Text-based pro-wrestling RPG epic.", c: ["Sports", "Drama", "Personal transformation"] },
+    { t: "Treasure Seekers of Lady Luck", d: "Jump to hyperspace with a ragtag crew.", c: ["Space opera", "Sci-Fi", "Adventure"] },
+    { t: "Choice of Kung Fu", d: "Become the Imperial Champion using chi.", c: ["Japanese", "Folklore", "Adventure"] },
+    { t: "The Fleet", d: "Forge an Intergalactic Alliance to reclaim home.", c: ["Sci-Fi", "War", "Space opera"] },
+    { t: "To the City of the Clouds", d: "Search for the lost Incan city in Colombia.", c: ["Adventure", "Historical", "Archaeological"] },
+    { t: "Choice of the Star Captain", d: "Fight the Blobs in the front lines of space war.", c: ["Space opera", "Sci-Fi", "Comedy"] },
+    { t: "For Rent: Haunted House", d: "Rent out a haunted house to screw over tenants.", c: ["Horror", "Comedy", "Workplace"] },
+    { t: "Heroes Rise", d: "Join the A-List of celebrity powered heroes.", c: ["Superhero", "Modern", "Personal transformation"] },
+    { t: "Choice of Zombies", d: "Fight for survival in a zombie-infested city.", c: ["Zombies", "Survival", "Post apocalyptic"] },
+    { t: "Choice of the Vampire", d: "Vampire journey in New Orleans, 1815.", c: ["Vampire", "Historical", "Romance"] },
+    { t: "Choice of Broadsides", d: "Swashbuckling naval adventure with a dash of Austen.", c: ["Ships / Ocean", "Historical", "War"] },
+    { t: "Choice of the Dragon", d: "Play as a fire-breathing dragon.", c: ["High/Epic Fantasy", "Comedy", "Adventure"] }
+];
+
+const hostedData = [
+    { t: "Throne of Blood", d: "Half-angel heir in a brutal demonic succession.", c: ["High/Epic Fantasy", "Grim dark", "Drama"] },
+    { t: "Eldritch Tales: Inheritance", d: "Inherit a Gothic manor and a fortune... with friends.", c: ["Horror", "Goth", "Mystery"] },
+    { t: "Meteoric", d: "Skull-shaped microphone spirit makes you a metal star.", c: ["Music", "Comedy", "Supernatural"] },
+    { t: "Saturnine", d: "1000-year-old android battles an ancient monster.", c: ["Near-Future Sci-Fi", "Robots", "Space opera"] },
+    { t: "World War II Armored Recon", d: "Command an American tank in North Africa.", c: ["War", "Historical", "Military"] },
+    { t: "To Ashes You Shall Return", d: "Yanked from death's clutches by your wife's magic.", c: ["Supernatural", "Drama", "Magic"] },
+    { t: "The Soul Stone War 3", d: "Impact the fate of all in the war for Soul Stones.", c: ["High/Epic Fantasy", "Adventure", "Personal transformation"] },
+    { t: "In the Halls of Asgard", d: "Play as a Norse god in Asgard.", c: ["Norse", "Gods", "Folklore"] },
+    { t: "Kitsune", d: "When a fox agent of chaos enters your mundane life.", c: ["Japanese", "Folklore", "Romance with Depth"] },
+    { t: "Leas: City of the Sun", d: "Fae roam outside walls in this desert city.", c: ["Low Fantasy", "Desert", "Adventure"] },
+    { t: "The People's House", d: "Risen to the highest office: the Presidency.", c: ["Political", "Drama", "Modern"] },
+    { t: "Message in a Melody", d: "Alien invaders find worth in human music.", c: ["Music", "Sci-Fi", "Alien"] },
+    { t: "It Takes Three to Tango", d: "Lake cabin weekend spirals into drama with an ex.", c: ["Romance", "Modern", "Drama"] },
+    { t: "Scales of Justice", d: "Fate can be foreseen in this magical world.", c: ["High/Epic Fantasy", "Adventure", "Philosophical"] },
+    { t: "First Bull Run", d: "Historically accurate Union command simulator.", c: ["War", "Historical", "Military"] },
+    { t: "Whiskey-Four", d: "Fate of the galaxy rests on a knife's edge.", c: ["Cyberpunk", "Sci-Fi", "Action"] },
+    { t: "Between Two Worlds", d: "Uncover a mysterious cult with a rogue smuggler.", c: ["Thriller", "Supernatural", "Mystery"] },
+    { t: "An Unexpectedly Green Journey", d: "Remake the world in the visage of an orc!", c: ["High/Epic Fantasy", "Animal", "War"] },
+    { t: "Fields of Asphodel", d: "Arranged marriage with the God of the Dead.", c: ["Greek", "Gods", "Romance with Depth"] },
+    { t: "Life as a Lich", d: "Recruit minions and manage underworld domains.", c: ["High/Epic Fantasy", "Grim dark", "Survival"] },
+    { t: "Exodus: Climate Activist", d: "Sabotage climate criminals in this thriller.", c: ["Coming of age", "Thriller", "Environmentalist"] },
+    { t: "Dragon of Steelthorne", d: "Rule a city in a steampunk-fantasy land.", c: ["Steampunk", "High/Epic Fantasy", "Kingdom"] },
+    { t: "Daria: A Kingdom Simulator", d: "Strategic resource management and storytelling.", c: ["Kingdom", "Historical", "Medieval"] },
+    { t: "Tale of Two Cranes", d: "Lead armies and wield magic in mythic ancient China.", c: ["China", "Historical", "High/Epic Fantasy"] },
+    { t: "Divine Ascension", d: "Minor deity ruled beings seek higher faith.", c: ["Gods", "Philosophical", "Adventure"] },
+    { t: "Don't Wake Me Up", d: "Trapped in malfunctioning VR with no memories.", c: ["Soft Surrealism", "Cyberpunk", "Sci-Fi"] },
+    { t: "Falrika the Alchemist", d: "Dreams can be achieved in Amitabiliha.", c: ["High/Epic Fantasy", "Slice of life", "Personal transformation"] },
+    { t: "The Arcanist's Journey", d: "Mold an orphan's path into elemental mastery.", c: ["Coming of age", "Magic", "Adventure"] },
+    { t: "Ghost Simulator", d: "Waking up in a dusty attic to meet your family.", c: ["Supernatural", "Modern", "Slice of life"] },
+    { t: "Path to Knighthood", d: "Childhood stories are darker and more realistic.", c: ["Medieval", "Low Fantasy", "Grim dark"] },
+    { t: "Turncoat Chronicle", d: "Lost heir resurfaces; defend or betray the king?", c: ["Kingdom", "Political", "Medieval"] },
+    { t: "Last Chance Quarterback", d: "Last chance to win it all against a big rival.", c: ["Sports", "Modern", "Drama"] },
+    { t: "Island of Carnage", d: "Escape mutated red-eyed cannibals.", c: ["Horror", "Gore", "Survival"] },
+    { t: "I, the Forgotten One", d: "Reunite the realm or shatter first?", c: ["Medieval", "Grim dark", "Personal transformation"] },
+    { t: "Zoo-pocalypse", d: "Apocalypse survivor makes home in a zoo.", c: ["Post apocalyptic", "Animal", "Survival"] },
+    { t: "Unnatural Season Two", d: "Protect innocent from humanity's dark side.", c: ["Urban Fantasy", "Supernatural", "Modern"] },
+    { t: "Hidden Sanctum", d: "Master soul paths in modern fantasy.", c: ["Urban Fantasy", "Supernatural Education", "Adventure"] },
+    { t: "Blood Moon", d: "Surprise encounter in the city's paranormal underbelly.", c: ["Werewolf", "Urban Fantasy", "Romance"] },
+    { t: "Wayhaven Chronicles: Book Three", d: "Kidnappings threaten the town again.", c: ["Vampire", "Paranormal", "Romance with Depth"] },
+    { t: "Lords of Infinity", d: "Gunpowder fantasy house management.", c: ["Gunpowder Fantasy", "Kingdom", "Political"] },
+    { t: "A Golden Opportunity", d: "Adventurers planning to heist a gold delivery.", c: ["Heist", "High/Epic Fantasy", "Adventure"] },
+    { t: "Fallen Hero: Retribution", d: "Build your future as Los Diablos' greatest villain.", c: ["Superhero", "Cyberpunk", "Psychological"] },
+    { t: "FORTUNE the FATED", d: "Fantasy quests, noir cases, space heists.", c: ["Genre-defying", "Ensemble stories", "Personal transformation"] },
+    { t: "The Fernweh Saga: Book One", d: "Seemingly idyllic hometown has dark secrets.", c: ["Horror", "Thriller", "Romance"] },
+    { t: "Balance of Superpower 2: Tricentennial", d: "Compete to graduate from Sage Academy!", c: ["Superhero", "School", "Ensemble stories"] },
+    { t: "Arthur: A Retelling", d: "Medieval dreamscape filled with magic and valor.", c: ["Medieval", "Folklore", "Coming of age"] },
+    { t: "The Passenger", d: "Eldritch existence trapped in human flesh.", c: ["Horror", "Urban Fantasy", "Personal transformation"] },
+    { t: "Mage Elite", d: "Strongest mage vs ruthless Zenos aliens.", c: ["Sci-Fi", "Magic", "War"] },
+    { t: "Talon City: Death from Above", d: "Owl lawyer out of his depth.", c: ["Animal", "Mystery", "Legal"] },
+    { t: "The Day After Ever After", d: "Twist on classic Cinderella story.", c: ["Fairy tale", "Drama", "Romance"] },
+    { t: "Midnight Saga: The Monster", d: "Wreck monsters on a wild Halloween night.", c: ["Horror", "Teen", "Supernatural"] },
+    { t: "The Nascent Necromancer", d: "Falsely accused sorcerer uses magic to survive.", c: ["High/Epic Fantasy", "Grim dark", "Magic"] },
+    { t: "Formorian War", d: "Family prophecy and magical beings.", c: ["High/Epic Fantasy", "Celtic", "Adventure"] },
+    { t: "Samurai of Hyuga Book 5", d: "Overcome ultimate despair back from hell.", c: ["Japanese", "Grim dark", "Drama"] },
+    { t: "Dual Nature", d: "Undead yet human in a zombie world.", c: ["Zombies", "Post apocalyptic", "Horror"] },
+    { t: "A Mage Reborn: Book One", d: "Arcane deities bargain for battlefield power.", c: ["High/Epic Fantasy", "Magic", "Tragedy"] },
+    { t: "Pride & Prejudice & Murder", d: "Happily-ever-after interrupted by murder.", c: ["Historical", "Mystery", "Comedy"] },
+    { t: "The Sword of Rhivenia", d: "Father's sword chooses who rules.", c: ["High/Epic Fantasy", "Kingdom", "Drama"] },
+    { t: "The Gray Painter", d: "Exclusive nude painting misadventure.", c: ["Art", "Modern", "Goth"] },
+    { t: "A Long Weekend", d: "Explore psyche in present-day London.", c: ["Psychological", "Personal transformation", "Modern"] },
+    { t: "The Golden Rose: Book One", d: "Mercenary in a low-fantasy epic.", c: ["Low Fantasy", "Adventure", "Medieval"] },
+    { t: "By Crom", d: "Write your own legend in a divided land.", c: ["High/Epic Fantasy", "Adventure", "Mythology"] },
+    { t: "Life of a Space Force Captain", d: "Rise to starship captain.", c: ["Space opera", "Sci-Fi", "Robots"] },
+    { t: "Grey Eyes of Death", d: "Fantasy horror with flesh eaters.", c: ["Horror", "Survival", "High/Epic Fantasy"] },
+    { t: "Relics 2: The Crusader's Tomb", d: "Four thousand miles. Four rivals. One adventure.", c: ["Historical", "Adventure", "Thriller"] },
+    { t: "Big Brains in Little Jars", d: "Mad-science brain adventure.", c: ["Sci-Fi", "Absurdist", "Comedy"] },
+    { t: "Caves and Dinosaurs", d: "Party delve into dinosaur money pit.", c: ["Adventure", "Animal", "High/Epic Fantasy"] },
+    { t: "Grand Casino of Fortune", d: "Gamble your way through the casino.", c: ["Modern", "Crime", "Drama"] },
+    { t: "Dawn of the Sol Empire", d: "Colony leader threatened by invasion.", c: ["Sci-Fi", "Space opera", "Political"] },
+    { t: "Community College Hero 2.5", d: "Three light-hearted classmate adventures.", c: ["Superhero", "School", "Teen"] },
+    { t: "Super Star Soccer Striker", d: "Life as a soccer player.", c: ["Sports", "Personal transformation", "Modern"] },
+    { t: "Interactive Bonbons", d: "Race pharaohs and win tennis matches.", c: ["Absurdist", "Anthology", "Adventure"] },
+    { t: "The Soul Stone War 2", d: "Legendary strength and companions.", c: ["High/Epic Fantasy", "Personal transformation", "Adventure"] },
+    { t: "Studies in Darkness", d: "Steampunk city heist with ghosts.", c: ["Steampunk", "Heist", "Supernatural"] },
+    { t: "Raiders of the Icepeak Mountains", d: "Battle orcs in dungeons.", c: ["High/Epic Fantasy", "Adventure", "Survival"] },
+    { t: "Temple of Endless Night", d: "Stop Serpent of Chaos in Egypt.", c: ["Egyptian", "High/Epic Fantasy", "Adventure"] },
+    { t: "Interstellar Airgap", d: "The hegemon has a unique weakness.", c: ["Sci-Fi", "War", "Cyberpunk"] },
+    { t: "The Horror Behind the Walls", d: "Calling from a mysterious case.", c: ["Horror", "Mystery", "Paranormal"] },
+    { t: "Rain King", d: "Sci-fi merged with medieval life.", c: ["Sci-Fi", "Medieval", "Philosophical"] },
+    { t: "The Vampire Regent", d: "Rule vampire secret society.", c: ["Vampire", "Horror", "Political"] },
+    { t: "The Soul Stone War", d: "Wield ancient artifact and shape fate.", c: ["High/Epic Fantasy", "Adventure", "Personal transformation"] },
+    { t: "Blood for Poppies", d: "Psychological horror mad science entrapment.", c: ["Horror", "Psychological", "Science"] },
+    { t: "Dinosaur Island Escape", d: "Survive and solve puzzles on dino island.", c: ["Survival", "Animal", "Adventure"] },
+    { t: "Pirates of Donkey Island", d: "Funny zombie insult sword fighting.", c: ["Pirates", "Comedy", "Zombies"] },
+    { t: "Kiss from Death", d: "Romance immortal beings in epic fantasy.", c: ["High/Epic Fantasy", "Romance with Depth", "Personal transformation"] },
+    { t: "Fifty", d: "Strangers stranded on mysterious island.", c: ["Survival", "Thriller", "Ensemble stories"] },
+    { t: "Donor", d: "Match wits with vampire captors.", c: ["Horror", "Vampire", "Survival"] },
+    { t: "Lux, City of Secrets", d: "Unravel big city mysteries.", c: ["Urban Fantasy", "Mystery", "Adventure"] },
+    { t: "The Mage's Adventure", d: "Rival demon hunting magical adventure.", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "War of 2022", d: "Modern military war loyalty drama.", c: ["War", "Modern", "Military"] },
+    { t: "Keeper of the Day and Night", d: "Sophomore essays and hellhound attacks.", c: ["Supernatural Education", "School", "Urban Fantasy"] },
+    { t: "Relics of the Lost Age", d: "Occult artifacts and Nazis.", c: ["Historical", "Adventure", "Thriller"] },
+    { t: "The Brothers' War", d: "War fog descends on mystical Eire.", c: ["Irish", "Folklore", "War"] },
+    { t: "After the Storm", d: "Rebuild climate apocalypse society.", c: ["Post apocalyptic", "Environmentalist", "Survival"] },
+    { t: "Score of a Lifetime", d: "Fortune track with a flame heart.", c: ["Modern", "Crime", "Romance"] },
+    { t: "Too Different", d: "Science-fantasy journey through four lands.", c: ["Sci-Fi", "High/Epic Fantasy", "Coming of age"] },
+    { t: "Demon: Recollect", d: "Ancient mutant modern villain mask.", c: ["Superhero", "Modern", "Supernatural"] },
+    { t: "Hero or Villain: Battle Royale", d: "Alien gladiatorial champion contest.", c: ["Superhero", "Sci-Fi", "Alien"] },
+    { t: "Balance of Superpower", d: "2075 academy for augmented heroes.", c: ["Superhero", "School", "Near-Future Sci-Fi"] },
+    { t: "A Sorcerer's Story", d: "Fireballs save the world from overlord.", c: ["High/Epic Fantasy", "Magic", "War"] },
+    { t: "The Floating City", d: "Teen shark farm glass city ocean drama.", c: ["Ocean", "Sci-Fi", "Teen"] },
+    { t: "Macabre Mansion", d: "Wake in strange haunted place.", c: ["Horror", "Supernatural", "Mystery"] },
+    { t: "President Disaster", d: "Worst babysitting job in history.", c: ["Satire", "Comedy", "Modern"] },
+    { t: "Trees Don't Tell", d: "Haunting forest nightmare or reality?", c: ["Soft Surrealism", "Mystery", "Psychological"] },
+    { t: "War for Magincia", d: "Prequel medieval simulator rule.", c: ["Kingdom", "Medieval", "War"] },
+    { t: "Journey into Darkness", d: "Victorian fabled gem horror adventure.", c: ["Historical", "Horror", "Adventure"] },
+    { t: "AI — Aftermath", d: "Prevent imminent AI apocalypse.", c: ["Sci-Fi", "Robots", "Post apocalyptic"] },
+    { t: "Wayhaven Chronicles: Book Two", d: "Romance bloom at wayhaven carnival.", c: ["Vampire", "Paranormal", "Romance with Depth"] },
+    { t: "The Aegis Saga", d: "Blight eats the world humans war.", c: ["High/Epic Fantasy", "Grim dark", "War"] },
+    { t: "The Kidnapped Prom Queen", d: "Prom committee plays cruel game.", c: ["Thriller", "Teen", "Crime"] },
+    { t: "The Shadow Society", d: "Return to childhood home mystery.", c: ["Urban Fantasy", "Mystery", "Supernatural"] },
+    { t: "Critical Mass: The Black Vein", d: "Fight for post-apocalyptic Philly.", c: ["Post apocalyptic", "Survival", "Action"] },
+    { t: "Street Jam: The Rise", d: "Punch way through bloodthirsty world.", c: ["Sports", "Modern", "Personal transformation"] },
+    { t: "The War for the West", d: "Dominant House politics in realm.", c: ["Kingdom", "Medieval", "Political"] },
+    { t: "Breach: The Archangel Job", d: "Vigilantes vs Chicago mafia job.", c: ["Crime", "Heist", "Ensemble stories"] },
+    { t: "Moonrise", d: "Queer werewolf friend or goddess kiss.", c: ["Werewolf", "Romance", "Urban Fantasy"] },
+    { t: "War of the Gods", d: "Fight god of death to become god.", c: ["Gods", "High/Epic Fantasy", "Adventure"] },
+    { t: "The Oldest Dream", d: "Stay sane under unfathomable creature gaze.", c: ["Horror", "Psychological", "Supernatural"] },
+    { t: "The Parenting Simulator", d: "Highs and lows of raising a child.", c: ["Slice of life", "Modern", "Children"] },
+    { t: "Death at the Rectory", d: "Strangers magical writing murder mystery.", c: ["Mystery", "Magic", "Cozy"] },
+    { t: "Hero or Villain: Genesis", d: "Greatest hero or villain balance.", c: ["Superhero", "Modern", "Personal transformation"] },
+    { t: "Samurai of Hyuga Book 4", d: "Recover forbidden ronin fire power.", c: ["Japanese", "Grim dark", "Adventure"] },
+    { t: "One Minute Mysteries", d: "Collection of fifty-five short mysteries.", c: ["Mystery", "Crime", "Children"] },
+    { t: "Scratch", d: "Millionaire estate dead girls strangers killer.", c: ["Horror", "Thriller", "Gore"] },
+    { t: "A Sensei's Story", d: "English teacher lives laughs loves in Japan.", c: ["Japanese", "Slice of life", "Workplace"] },
+    { t: "Who Was The Real Robin Hood?", d: "Outlaw flee sherwood to Isle of Varna.", c: ["Historical", "Folklore", "Adventure"] },
+    { t: "The Saga of Oedipus Rex", d: "Future cursed in time of gods.", c: ["Greek", "Gods", "Tragedy"] },
+    { t: "Totem Force", d: "Anime robots mad gods teen romance.", c: ["Anime", "Sci-Fi", "Robots"] },
+    { t: "Sordwin: The Evertree Saga", d: "Island quarantine mystery save town.", c: ["High/Epic Fantasy", "Mystery", "Supernatural"] },
+    { t: "The Paths to Greatness", d: "Service of mysterious emperor rebel way.", c: ["High/Epic Fantasy", "Adventure", "Drama"] },
+    { t: "Tudor Intrigue", d: "Reformation politics 16th century England.", c: ["Historical", "Political", "Drama"] },
+    { t: "Dragon Racer", d: "Race with pros in land sea skies.", c: ["Animal", "High/Epic Fantasy", "Sports"] },
+    { t: "Keeper of the Sun and Moon", d: "College essays or demons worst part.", c: ["Supernatural Education", "School", "Urban Fantasy"] },
+    { t: "Gladiator: Road to the Colosseum", d: "Slave gladiator champion rome politics.", c: ["Historical", "War", "Personal transformation"] },
+    { t: "Life of a Mercenary", d: "Mercenary company fame and fortune.", c: ["Medieval", "War", "Kingdom"] },
+    { t: "The Butler Did It", d: "Comedy manners mayhem steampunk blasters.", c: ["Steampunk", "Comedy", "Mystery"] },
+    { t: "Critical Mass: The Bridge", d: "Lone warrior way to mythic Crescent City.", c: ["Post apocalyptic", "Survival", "Action"] },
+    { t: "Missing Wings", d: "Archangel wings restore monsters loot gear.", c: ["High/Epic Fantasy", "Adventure", "Supernatural"] },
+    { t: "The Slayer of Evil", d: "Divine Feminine bane of evil entities.", c: ["High/Epic Fantasy", "Supernatural", "Adventure"] },
+    { t: "Love at Elevation", d: "Romance easy as one two three Boulder.", c: ["Romance", "Modern", "Slice of life"] },
+    { t: "Nuclear Powered Toaster", d: "24th century spaceship oddest janitor.", c: ["Absurdist", "Sci-Fi", "Space opera"] },
+    { t: "The Twelve Trials", d: "Gods designed contest for immortality prize.", c: ["High/Epic Fantasy", "Gods", "Adventure"] },
+    { t: "The Grim and I", d: "Lost life vs uncertain eternity choice.", c: ["Supernatural", "Psychological", "Tragedy"] },
+    { t: "The Magician's Burden", d: "Romance cute villagers banter demon head.", c: ["High/Epic Fantasy", "Comedy", "Romance"] },
+    { t: "The Haze Under Windbrooke", d: "Investigate strange creatures malevolent fog.", c: ["Urban Fantasy", "Mystery", "Paranormal"] },
+    { t: "The Last Wizard", d: "Earth to fantasy magic kingdom protection.", c: ["High/Epic Fantasy", "Magic", "War"] },
+    { t: "The Harbinger's Head", d: "Ireland 19th century dark monster head find.", c: ["Irish", "Folklore", "Horror"] },
+    { t: "Doomsday on Demand 2", d: "Dark post-apocalyptic world deadly challenges.", c: ["Post apocalyptic", "Survival", "Grim dark"] },
+    { t: "The Courting of Miss Bennet", d: "1813 true love suitor favoring quest.", c: ["Historical", "Romance", "Drama"] },
+    { t: "A Mummy Is Not An Antique", d: "Battle amok mummy filming story century.", c: ["Comedy", "Supernatural", "Movies"] },
+    { t: "Community College Hero: Knowledge is Power", d: "Superpowered college study party fight villains.", c: ["Superhero", "School", "Teen"] },
+    { t: "The Kepler Colony: Evacuation", d: "Asteroid headed earth interstellar spaceship build.", c: ["Hard Sci-fi", "Space opera", "Survival"] },
+    { t: "NE By NW Oz", d: "Hitchcockian parody Northeast Oz rule quest.", c: ["Absurdist", "Satire", "Mystery"] },
+    { t: "Highway Wars", d: "Arid plains road warrior highway marshall.", c: ["Post apocalyptic", "Western", "Action"] },
+    { t: "Fallen Hero: Rebirth", d: "Telepathy romance old friends villain rebirth.", c: ["Superhero", "Cyberpunk", "Personal transformation"] },
+    { t: "Wayhaven Chronicles: Book One", d: "First case detective world eye opener.", c: ["Vampire", "Paranormal", "Romance with Depth"] },
+    { t: "The Great Tournament 2", d: "Knight Lord Prince medieval quest continuation.", c: ["High/Epic Fantasy", "Kingdom", "Medieval"] },
+    { t: "Comrade or Czar", d: "1917 lead Revolution build Motherland.", c: ["Historical", "Alternative History", "Political"] },
+    { t: "The Aether: Life as a God", d: "Create race explore aether battle gods.", c: ["Gods", "High/Epic Fantasy", "Philosophical"] },
+    { t: "Foundation of Nightmares", d: "Wizard aid to defeat Mendax demon.", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "Samurai of Hyuga Book 3", d: "Facing Hyuga fiercest demons ronin mind.", c: ["Japanese", "Grim dark", "Supernatural"] },
+    { t: "Highlands, Deep Waters", d: "Scottish town murder secrets abyssal horror.", c: ["Horror", "Mystery", "Goth"] },
+    { t: "Lost in the Pages", d: "Rescue uncle restore order to stories.", c: ["Magic", "Adventure", "Supernatural"] },
+    { t: "The Dryad's Riddle", d: "Land of dreams cryptic riddles wit wisdom.", c: ["Fairy tale", "Dreams", "Fantasy"] },
+    { t: "Knight of the Fellowship", d: "Weapon dancing art temple love carnage.", c: ["High/Epic Fantasy", "Romance", "War"] },
+    { t: "Diamant Rose", d: "Iron Curtain diamonds revolution mission betrayal.", c: ["Spy", "Thriller", "Historical"] },
+    { t: "The Spy and the Labyrinth", d: "Lovecraftian horror Miskatonic professor Amazon search.", c: ["Horror", "Mystery", "Historical"] },
+    { t: "My Day off Work", d: "Starts day beginning goes where you choose.", c: ["Slice of life", "Modern", "Comedy"] },
+    { t: "Treasure of the Forbidden City", d: "Lost city sands star jewels journal find.", c: ["Desert", "Adventure", "Archaeological"] },
+    { t: "The Daily Blackmail", d: "Rotten city hall Pulitzer win news hunt.", c: ["Modern", "Mystery", "Drama"] },
+    { t: "Paradigm City", d: "Golden Age heroes over help world self.", c: ["Superhero", "Sci-Fi", "Modern"] },
+    { t: "The Lost Heir 3: Demon War", d: "Avenge parents throne Daria conclusion epic.", c: ["High/Epic Fantasy", "Kingdom", "War"] },
+    { t: "The Great Tournament", d: "Squire to knight determine Magincia fate.", c: ["Medieval", "High/Epic Fantasy", "Adventure"] },
+    { t: "Spacing Out", d: "Nightmare planet warriors artifact retrieve die.", c: ["Sci-Fi", "Horror", "Survival"] },
+    { t: "Evertree Inn", d: "Magical inn murder mystery hero blood secrets.", c: ["High/Epic Fantasy", "Mystery", "Magic"] },
+    { t: "Tokyo Wizard", d: "Modern Tokyo saving powerful wizard witch quest.", c: ["Urban Fantasy", "Japanese", "Magic"] },
+    { t: "Zombie Exodus: Safe Haven", d: "Apocalypse dawn society collapse survival quest.", c: ["Zombies", "Survival", "Post apocalyptic"] },
+    { t: "Twin Flames", d: "Unconditional love oneness peace journey.", c: ["Philosophical", "Romance", "Supernatural"] },
+    { t: "Tomb of the Khan", d: "Archaeologist Genghis Khan tomb Lovecraftian horrors.", c: ["Horror", "Adventure", "Historical"] },
+    { t: "Elemental Saga: The Awakening", d: "Harness Elemental powers water earth electricity light.", c: ["Supernatural Education", "School", "Action"] },
+    { t: "Samurai of Hyuga Book 2", d: "Heated ronin battles silk steel romance await.", c: ["Japanese", "Grim dark", "Romance"] },
+    { t: "Machinations: Fog of War", d: "Shapeshifting android gunpowder diplomacy city plots.", c: ["Steampunk", "Robots", "Political"] },
+    { t: "The 3Games", d: "Lead team five action roles betrayal decide.", c: ["Survival", "Thriller", "Drama"] },
+    { t: "Academy of Disaster", d: "Amnesiac student investigate mob heir murder conspiracy.", c: ["Mystery", "School", "Thriller"] },
+    { t: "Swamp Castle", d: "Small castle Lord finance troop conflict order.", c: ["Medieval", "Kingdom", "Workplace"] },
+    { t: "The Iron Destinies", d: "Lone atom supernova universe reaches destiny alteration.", c: ["Sci-Fi", "Philosophical", "Personal transformation"] },
+    { t: "Starship Adventures", d: "Quick-thinking captain flying starship worlds hair grooming.", c: ["Space opera", "Sci-Fi", "Comedy"] },
+    { t: "Doomsday on Demand", d: "Demolished district mutants survivor nightmare end hope.", c: ["Post apocalyptic", "Survival", "Sci-Fi"] },
+    { t: "Gambling with Eternity", d: "Ghost story afterlife secrets terrify enemies gamble.", c: ["Supernatural", "Horror", "Psychological"] },
+    { t: "Best of Us", d: "Dawn superpowers first hero first villain standing.", c: ["Superhero", "Modern", "Drama"] },
+    { t: "First Year Demons", d: "China university chaos demon duty secret.", c: ["China", "Supernatural Education", "Folklore"] },
+    { t: "Guns of Infinity", d: "Cavalry squadron gunpowder magic war sacrifice quest.", c: ["Gunpowder Fantasy", "War", "Historical"] },
+    { t: "Scarlet Sails", d: "Jolly Roger hoist titan treasure magic cutlass.", c: ["Pirates", "Ocean", "High/Epic Fantasy"] },
+    { t: "Magikiras", d: "Powered armor terrorists aliens distant future private.", c: ["Sci-Fi", "Robots", "Urban Fantasy"] },
+    { t: "Wizardry Level C", d: "Magic book turns life upside guild path.", c: ["High/Epic Fantasy", "Magic", "Coming of age"] },
+    { t: "The Lost Heir 2: Forging a Kingdom", d: "Unite kingdom dragon elf demon parents avenge.", c: ["High/Epic Fantasy", "Kingdom", "War"] },
+    { t: "The Vampire House", d: "Human monster romance species diversity creatures.", c: ["Vampire", "Romance", "Paranormal"] },
+    { t: "Captive of Fortune", d: "Necromancers ogre demon trial sequel city romance.", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "Community College Hero: Trial by Fire", d: "Outwit professors superpowered exam date class villains.", c: ["Superhero", "School", "Teen"] },
+    { t: "Factions: Raids of the Divided", d: "Factions divided raids save Alfarid adventure.", c: ["High/Epic Fantasy", "War", "Adventure"] },
+    { t: "A Study in Steampunk: Choice by Gaslight", d: "Steam-powered mechs sorcery holmes dracula jack ripper.", c: ["Steampunk", "Mystery", "Alternative History"] },
+    { t: "Attack of the Clockwork Army", d: "Clockwork Men Bushrangers Australian Independence Battle.", c: ["Alternative History", "Steampunk", "War"] },
+    { t: "Founders Saga: The Culling", d: "Killer robots warriors well-tailored robes stun baton interviews.", c: ["Sci-Fi", "Robots", "Dystopian"] },
+    { t: "So, You're Possessed!", d: "Demon human apocalyptic force within soul fight.", c: ["Urban Fantasy", "Comedy", "Supernatural"] },
+    { t: "Dancing with Demons", d: "Succubus play save world demonic heart wishes.", c: ["Urban Fantasy", "Modern", "Erotica"] },
+    { t: "Samurai of Hyuga", d: "Land of silk steel tough ronin choices.", c: ["Japanese", "Grim dark", "Personal transformation"] },
+    { t: "Double/Cross", d: "Protect richest man England drama mystery romance.", c: ["Mystery", "Romance", "Modern"] },
+    { t: "No Proper Thief", d: "Befriend betray bank robbers survive riches quest.", c: ["Heist", "Crime", "Comedy"] },
+    { t: "The Shadow Horror", d: "Abandoned house creature Sun goes down horror.", c: ["Horror", "Paranormal", "Survival"] },
+    { t: "The Volunteer Firefighter", d: "Action firefighting heartache romance adventure hero.", c: ["Workplace", "Modern", "Drama"] },
+    { t: "Zombien", d: "Dead walk aliens arrived end world world.", c: ["Zombies", "Sci-Fi", "Comedy"] },
+    { t: "The Lost Heir: The Fall of Daria", d: "Take back throne demon-summoning usurpers fantasy.", c: ["High/Epic Fantasy", "Kingdom", "Coming of age"] },
+    { t: "Seven Bullets", d: "Assassin skills rescue sister kidnapped Boss killers.", c: ["Thriller", "Action", "Crime"] },
+    { t: "Lords of Aswick", d: "Nobleman life childhood death medieval realm affairs.", c: ["Medieval", "Kingdom", "Historical"] },
+    { t: "Somme Trench", d: "British infantryman WWI Somme battle survival.", c: ["War", "Historical", "Tragedy"] },
+    { t: "Silent Gear", d: "Elite soldier grim military future war survival.", c: ["Sci-Fi", "War", "Thriller"] },
+    { t: "The Ascot", d: "Nab fortune eagle beast lunch wacky adventure.", c: ["Absurdist", "Comedy", "Satire"] },
+    { t: "Divided We Fall", d: "Spanish Civil War four Spaniards lives decide.", c: ["Historical", "War", "Drama"] },
+    { t: "Gangs of Old Camp", d: "Action suspense thriller destiny choice.", c: ["Thriller", "Crime", "Modern"] },
+    { t: "Sword of the Elements", d: "World end epic sword twenty three elements evil.", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "Path of Light", d: "Priest Light smite demons confess abyss priestess.", c: ["High/Epic Fantasy", "Religious", "Adventure"] },
+    { t: "Fatehaven", d: "Four elements fate adventure romance magic.", c: ["High/Epic Fantasy", "Magic", "Romance"] },
+    { t: "Life of a Mobster", d: "Join mob rule city celebrity prisoner senator.", c: ["Crime", "Historical", "Drama"] },
+    { t: "Planetary Quarantine", d: "Interstellar exploration conspiracy earth life worlds.", c: ["Sci-Fi", "Mystery", "Personal transformation"] },
+    { t: "Trial of the Demon Hunter", d: "Avenge village shape shifting companion fantasy novel.", c: ["High/Epic Fantasy", "Adventure", "Supernatural"] },
+    { t: "Tin Star", d: "US Marshal Wild West bandits romance legend.", c: ["Western", "Historical", "Adventure"] },
+    { t: "Unnatural", d: "Supernatural Response Team join humanity darker side.", c: ["Urban Fantasy", "Supernatural", "Mystery"] },
+    { t: "Burn(t)", d: "Zombie apocalypse survive parents die alliances murder.", c: ["Zombies", "Survival", "Post apocalyptic"] },
+    { t: "Way Walkers: University 2", d: "Tar'citadel trilogy shocking mystery school attacks.", c: ["Supernatural Education", "School", "High/Epic Fantasy"] },
+    { t: "Paradox Factor", d: "Time travel game past future change effects.", c: ["Time Travel", "Sci-Fi", "Philosophical"] },
+    { t: "Sabres of Infinity", d: "Royal Dragoon military epic glory riches boots.", c: ["Gunpowder Fantasy", "War", "Military"] },
+    { t: "Life of a Wizard", d: "Archmage autobiography 80 years man woman world.", c: ["High/Epic Fantasy", "Magic", "Personal transformation"] },
+    { t: "Way Walkers: University", d: "Magical school psychic Ability monsters Angel ghosts.", c: ["Supernatural Education", "School", "High/Epic Fantasy"] },
+    { t: "Sons of the Cherry", d: "Revolution espionage arcane magic secret war soul.", c: ["Alternative History", "Magic", "Spy"] },
+    { t: "Apex Patrol", d: "Star cruiser commander rescue investigation save Earth.", c: ["Space opera", "Sci-Fi", "War"] },
+    { t: "Wizard's Choice", d: "D&D style spells evil smite fortune glory.", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
+    { t: "The Race", d: "Peru race journey lifetime teams performance choices.", c: ["Adventure", "Personal transformation", "Modern"] },
+    { t: "Dead Already?", d: "Short murder mystery randomly selected murderer challenge.", c: ["Mystery", "Crime", "Modern"] },
+    { t: "Mobile Armored Marine", d: "Imperial Armor Marine stealth diplomacy armor power.", c: ["Sci-Fi", "War", "Action"] },
+    { t: "Zebulon", d: "Asteroid Zebulon secrets space pet goldfish Henry.", c: ["Sci-Fi", "Space opera", "Comedy"] },
+    { t: "Zombie Exodus", d: "Daring escape zombie city swarm locusts ending.", c: ["Zombies", "Survival", "Post apocalyptic"] },
+    { t: "Dilemma", d: "Moral decisions modern drama Alex day juggle.", c: ["Modern", "Philosophical", "Drama"] },
+    { t: "Marine Raider", d: "WW2 elite Marine Raider platoon battle-plan landing.", c: ["War", "Historical", "Military"] },
+    { t: "Imprisoned", d: "Prison escape wits skills magnificent strength hard.", c: ["High/Epic Fantasy", "Adventure", "Mystery"] },
+    { t: "Land of Three Classes", d: "Retro multiple choice adventurer dungeon riddles apprentice.", c: ["High/Epic Fantasy", "Adventure", "Magic"] },
+    { t: "Paranoia", d: "Doctor trying kill you survival multiple choice.", c: ["Psychological", "Thriller", "Modern"] },
+    { t: "What Happened Last Night?", d: "Dark humorous action murder mystery text-based choice.", c: ["Mystery", "Comedy", "Thriller"] },
+    { t: "The Nightmare Maze", d: "Bostonian 19th century nightmares psyche tormented psyche haunt.", c: ["Goth", "Psychological", "Dreams"] },
+    { t: "Popcorn, Soda … Murder?", d: "Murder mystery find clues movie theater thriller.", c: ["Mystery", "Crime", "Modern"] }
+];
+
+/* ── Stamp type into each item ── */
+const allTitles = [
+    ...choiceData.map(d => ({ ...d, type: 'choice' })),
+    ...hostedData.map(d => ({ ...d, type: 'hosted' }))
+];
+
+/* ── Pre-build pill HTML strings (done once, not on every render) ── */
+const pillCache = new Map();
+function getPillsHTML(genres) {
+    const key = genres.join('|');
+    if (pillCache.has(key)) return pillCache.get(key);
+    const html = genres.map(g => {
+        const bg = colorMap[g] || '#334155';
+        return `<span class="pill" style="background:${bg};color:${getContrastColor(bg)}">${g}</span>`;
+    }).join('');
+    pillCache.set(key, html);
+    return html;
+}
+
+/* ── State ── */
+let activeGenres = new Set();
+let currentType = 'all';
+let searchQuery = '';
+
+/* ── DOM refs ── */
+const genreBox  = document.getElementById('genre-box');
+const grid      = document.getElementById('grid');
+const counter   = document.getElementById('counter');
+const searchEl  = document.getElementById('search');
+
+/* ── Build genre filter tags ── */
+function init() {
+    const uniqueGenres = [...new Set(allTitles.flatMap(t => t.c))].sort();
+    const frag = document.createDocumentFragment();
+    uniqueGenres.forEach(genre => {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.textContent = genre;
+        tag.tabIndex = 0;
+        tag.setAttribute('role', 'button');
+        tag.setAttribute('aria-pressed', 'false');
+        const bg = colorMap[genre] || '#334155';
+        tag.style.backgroundColor = bg;
+        tag.style.color = getContrastColor(bg);
+        tag.addEventListener('click', () => toggleGenre(genre, tag));
+        tag.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGenre(genre, tag); }
+        });
+        frag.appendChild(tag);
+    });
+    genreBox.appendChild(frag);
+
+    /* Type toggle buttons */
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => setType(btn.dataset.type, btn));
+    });
+
+    /* Clear button */
+    document.getElementById('clear-filters').addEventListener('click', clearAll);
+
+    /* Search */
+    searchEl.addEventListener('input', () => {
+        searchQuery = searchEl.value.trim().toLowerCase();
+        render();
+    });
+
+    render();
+}
+
+function setType(type, btn) {
+    currentType = type;
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+}
+
+function toggleGenre(genre, el) {
+    if (activeGenres.has(genre)) {
+        activeGenres.delete(genre);
+        el.classList.remove('active');
+        el.setAttribute('aria-pressed', 'false');
+    } else {
+        activeGenres.add(genre);
+        el.classList.add('active');
+        el.setAttribute('aria-pressed', 'true');
+    }
+    render();
+}
+
+function clearAll() {
+    activeGenres.clear();
+    currentType = 'all';
+    searchQuery = '';
+    searchEl.value = '';
+    document.querySelectorAll('.tag').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-pressed', 'false');
+    });
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.toggle-btn[data-type="all"]').classList.add('active');
+    render();
+}
+
+function render() {
+    const q = searchQuery;
+    const filtered = allTitles.filter(item => {
+        if (currentType !== 'all' && item.type !== currentType) return false;
+        if (activeGenres.size > 0 && ![...activeGenres].every(g => item.c.includes(g))) return false;
+        if (q && !item.t.toLowerCase().includes(q) && !item.d.toLowerCase().includes(q)) return false;
+        return true;
+    });
+
+    const choiceLabel = 'Choice of Games';
+    const hostedLabel = 'Hosted Games';
+
+    counter.innerHTML = `Showing <b>${filtered.length}</b> of ${allTitles.length} titles`;
+
+    /* Use DocumentFragment for batch DOM insert */
+    const frag = document.createDocumentFragment();
+
+    if (filtered.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'no-results';
+        msg.textContent = 'No titles match your filters. Try clearing some!';
+        frag.appendChild(msg);
+    } else {
+        filtered.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-type">${item.type === 'choice' ? choiceLabel : hostedLabel}</div>
+                <h3>${item.t}</h3>
+                <p>${item.d}</p>
+                <div class="card-tags">${getPillsHTML(item.c)}</div>`;
+            frag.appendChild(card);
+        });
+    }
+
+    grid.replaceChildren(frag); /* replaceChildren clears + inserts in one shot */
+}
+
+init();
+</script>
+</body>
+</html>
