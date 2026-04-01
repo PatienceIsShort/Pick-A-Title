@@ -156,6 +156,18 @@
             margin: 0 auto;
         }
 
+        /* Card link wrapper — removes default anchor styling */
+        a.card-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            border-radius: 12px;
+        }
+        a.card-link:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -164,8 +176,10 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.25s, border-color 0.25s;
+            cursor: pointer;
+            height: 100%;
         }
-        .card:hover {
+        a.card-link:hover .card {
             transform: translateY(-4px);
             border-color: var(--accent);
         }
@@ -377,9 +391,28 @@ function getContrastColor(hex) {
     return result;
 }
 
+/* ── URL slug generator ── */
+function makeSlug(title) {
+    return title
+        .toLowerCase()
+        // drop everything after a colon (subtitles), e.g. "Heroes of Tomorrow: Hidden Potential" → "Heroes of Tomorrow"
+        .replace(/:.*$/, '')
+        // remove apostrophes/special chars
+        .replace(/[''`]/g, '')
+        // replace any non-alphanumeric run with a hyphen
+        .replace(/[^a-z0-9]+/g, '-')
+        // trim leading/trailing hyphens
+        .replace(/^-+|-+$/g, '');
+}
+
+function makeURL(item) {
+    const base = 'https://www.choiceofgames.com';
+    return `${base}/${makeSlug(item.t)}`;
+}
+
 /* ── Data ── */
 const choiceData = [
-    { t: "Heroes of Tomorrow: Hidden Potential", d: "At our superhero academy, you'll lead a team of teen heroes to battle supervillains!", c: ["Superhero", "Teen", "Adventure"] },
+    { t: "Heroes of Tomorrow: Hidden Potential", d: "At our superhero academy, you'll lead a team of teen heroes to battle supervillains!", c: ["Superhero", "Teen", "Coming of age", "Adventure"] },
     { t: "Undying Fortress", d: "Can you and your magic sword save the kingdom from death herself?", c: ["High/Epic Fantasy", "Magic", "Adventure"] },
     { t: "Cheerleader's Choice: New York Spirit", d: "Be! Heroic! B-E heroic! Grab your pompoms and save New York from dystopian villains!", c: ["Dystopian", "Superhero", "Modern"] },
     { t: "House of the Golden Mask", d: "Awaken your magic and break an ancient curse at this secret school of sorcery!", c: ["Magic School", "Supernatural", "Mystery"] },
@@ -930,7 +963,6 @@ function render() {
 
     counter.innerHTML = `Showing <b>${filtered.length}</b> of ${allTitles.length} titles`;
 
-    /* Use DocumentFragment for batch DOM insert */
     const frag = document.createDocumentFragment();
 
     if (filtered.length === 0) {
@@ -940,6 +972,12 @@ function render() {
         frag.appendChild(msg);
     } else {
         filtered.forEach(item => {
+            const link = document.createElement('a');
+            link.className = 'card-link';
+            link.href = makeURL(item);
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
@@ -947,11 +985,13 @@ function render() {
                 <h3>${item.t}</h3>
                 <p>${item.d}</p>
                 <div class="card-tags">${getPillsHTML(item.c)}</div>`;
-            frag.appendChild(card);
+
+            link.appendChild(card);
+            frag.appendChild(link);
         });
     }
 
-    grid.replaceChildren(frag); /* replaceChildren clears + inserts in one shot */
+    grid.replaceChildren(frag);
 }
 
 init();
